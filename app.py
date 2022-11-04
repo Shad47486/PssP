@@ -7,38 +7,39 @@ load_dotenv()
 
 mysql_username = os.getenv("MYSQL_USERNAME")
 mysql_password = os.getenv("MYSQL_PASSWORD")
-mysql_host = os.getenv("MYSQL_HOST")
+mysql_host = os.getenv("MYSQL_HOSTNAME")
 
 db = SQLAlchemy()
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqldb://' + mysql_username + ':' + mysql_password + '@' + mysql_host + ':3306/patient_portal'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'sdf#$#dfjkhdf0SDJH0df9fd98343fdfu34rf'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqldb://' + mysql_username + ':' + mysql_password + '@' + mysql_host + ':3306/patients'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False #allows for tracking
+app.secret_key = 'sdf#$#dfjkhdf0SDJH0df9fd98343fdfu34rf' #unique identifier 
 
 db.init_app(app)
-
 
 ### Models ###
 class Patients(db.Model):
     __tablename__ = 'production_patients'
-
     id = db.Column(db.Integer, primary_key=True)
     mrn = db.Column(db.String(255))
     first_name = db.Column(db.String(255))
     last_name = db.Column(db.String(255))
     zip_code = db.Column(db.String(255), nullable=True)
     gender = db.Column(db.String(255), nullable=True)
+    contact_mobile = db.Column(db.String(255), nullable=True)
+    dob = db.Column(db.String(255), nullable=True)
+    ins = db.Column(db.String(255), nullable=True)
 
-    # this first function __init__ is to establish the class for python GUI
+# this first function __init__ is to establish the class for python GUI
     def __init__(self, mrn, first_name, last_name, zip_code, gender):
         self.mrn = mrn
         self.first_name = first_name
         self.last_name = last_name
         self.zip_code = zip_code
         self.gender = gender
-
-    # this second function is for the API endpoints to return JSON 
+        self.gender
+# this second function is for the API endpoints to return JSON
     def to_json(self):
         return {
             'id': self.id,
@@ -47,26 +48,6 @@ class Patients(db.Model):
             'last_name': self.last_name,
             'zip_code': self.zip_code,
             'gender': self.gender
-        }
-
-class Conditions_patient(db.Model):
-    __tablename__ = 'production_patient_conditions'
-
-    id = db.Column(db.Integer, primary_key=True)
-    mrn = db.Column(db.String(255), db.ForeignKey('production_patients.mrn'))
-    icd10_code = db.Column(db.String(255), db.ForeignKey('production_conditions.icd10_code'))
-
-    # this first function __init__ is to establish the class for python GUI
-    def __init__(self, mrn, icd10_code):
-        self.mrn = mrn
-        self.icd10_code = icd10_code
-
-    # this second function is for the API endpoints to return JSON
-    def to_json(self):
-        return {
-            'id': self.id,
-            'mrn': self.mrn,
-            'icd10_code': self.icd10_code
         }
 
 class Conditions(db.Model):
@@ -89,6 +70,26 @@ class Conditions(db.Model):
             'icd10_description': self.icd10_description
         }
 
+class Conditions_patient(db.Model):
+    __tablename__ = 'production_patient_conditions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    mrn = db.Column(db.String(255), db.ForeignKey('production_patients.mrn'))
+    icd10_code = db.Column(db.String(255), db.ForeignKey('production_conditions.icd10_code'))
+
+    # this first function __init__ is to establish the class for python GUI
+    def __init__(self, mrn, icd10_code):
+        self.mrn = mrn
+        self.icd10_code = icd10_code
+
+    # this second function is for the API endpoints to return JSON
+    def to_json(self):
+        return {
+            'id': self.id,
+            'mrn': self.mrn,
+            'icd10_code': self.icd10_code
+        }
+
 class Medications_patient(db.Model):
     __tablename__ = 'production_patient_medications'
 
@@ -108,7 +109,7 @@ class Medications_patient(db.Model):
             'mrn': self.mrn,
             'med_ndc': self.med_ndc
         }
-    
+
 class Medications(db.Model):
     __tablename__ = 'production_medications'
 
@@ -143,7 +144,7 @@ def signin():
 ##### CREATE BASIC GUI FOR CRUD #####
 @app.route('/patients', methods=['GET'])
 def get_gui_patients():
-    returned_Patients = Patients.query.all() # documentation for .query exists: https://docs.sqlalchemy.org/en/14/orm/query.html
+    returned_Patients = Patients.query.all()
     return render_template("patient_all.html", patients = returned_Patients)
 
 # this endpoint is for inserting in a new patient
@@ -219,14 +220,6 @@ def update_conditions(): # note this function needs to match name in html form a
         ## then return to patient details page
         return redirect(url_for('get_patient_details', mrn=patient_condition.mrn))
 
-
-
-
-
-
-
-
-##### CREATE BASIC API ENDPOINTS #####
 # get all Patients
 @app.route("/api/patients/list", methods=["GET"])
 def get_patients():
